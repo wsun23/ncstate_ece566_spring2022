@@ -115,8 +115,7 @@ void print_csv_file(const char *filename, Stats s, const char *id)
 
 Stats MyStats;
 
-void
-Summarize(LLVMModuleRef Module, const char *id, const char* filename)
+void Summarize(LLVMModuleRef Module, const char *id, const char* filename)
 {
   LLVMValueRef  fn_iter; // iterator 
   for (fn_iter = LLVMGetFirstFunction(Module); fn_iter!=NULL; 
@@ -143,19 +142,17 @@ Summarize(LLVMModuleRef Module, const char *id, const char* filename)
 	      MyStats.insns++;
 	      
 	      // get the basic block of this instruction
-	      LLVMBasicBlockRef ref = 
-		LLVMGetInstructionParent(inst_iter);
+	      // LLVMBasicBlockRef ref =	LLVMGetInstructionParent(inst_iter);
 
 	      if ( LLVMIsALoadInst(inst_iter) ) {
-		MyStats.loads++;
+      		MyStats.loads++;
 	      } else if ( LLVMIsAStoreInst(inst_iter)) {
-		MyStats.stores++;
+		      MyStats.stores++;
 	      }
 
 	    }
 	}
     }
-
 
   pretty_print_stats(stdout,MyStats,0);
   print_csv_file(filename,MyStats,id);

@@ -20,7 +20,7 @@ add_executable(dce dce.c worklist.cpp stats.cpp)
 target_link_libraries(dce ${llvm_libs})
 
 add_custom_target(test0.bc ALL
-        clang-11 -O0 -Xclang -disable-O0-optnone -c -emit-llvm -o test0.bc ${CMAKE_CURRENT_SOURCE_DIR}/test0.c
+        clang-13 -O0 -Xclang -disable-O0-optnone -c -emit-llvm -o test0.bc ${CMAKE_CURRENT_SOURCE_DIR}/test0.c
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS dce test0.c
       )
