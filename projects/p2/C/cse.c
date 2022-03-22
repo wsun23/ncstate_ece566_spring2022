@@ -25,9 +25,7 @@ LLVMStatisticsRef CSELdElim;
 LLVMStatisticsRef CSEStore2Load;
 LLVMStatisticsRef CSEStElim;
 
-int isDead(LLVMValueRef I) {
-    if (LLVMGetFirstUse(I)!=NULL)
-        return 0;
+int noSideEffect(LLVMValueRef I) {
     LLVMOpcode opcode = LLVMGetInstructionOpcode(I);
     switch(opcode) {
         // when in doubt, keep it! add opcode here to remove:
@@ -84,6 +82,13 @@ int isDead(LLVMValueRef I) {
     }
 
     return 0;
+}
+
+
+int isDead(LLVMValueRef I) {
+    if (LLVMGetFirstUse(I)!=NULL)
+        return 0;
+    return noSideEffect(I);
 }
 
 
@@ -233,6 +238,19 @@ void CommonSubexpressionElimination(LLVMModuleRef Module)
             while(inst_iter != NULL) 
             {
 
+                // if(LLVMGetInstructionOpcode(inst_iter) ==  LLVMLoad) {
+                //     fprintf(stderr,"\nLLVMLoad!");
+                // }
+                // if(LLVMGetInstructionOpcode(inst_iter) ==  LLVMStore) {
+                //     fprintf(stderr,"\nLLVMStore!");
+                // }
+                // fprintf(stderr,"\nNumber of def is: %d", LLVMGetNumOperands(inst_iter));
+                // for(unsigned op=0; op< LLVMGetNumOperands(inst_iter); op++) {
+                //     LLVMValueRef definition = LLVMGetOperand(inst_iter,op);
+                //     fprintf(stderr,"\nDefinition of op=%d is:\n",op);
+                //     LLVMDumpValue(definition);
+                // }
+
                 // Optimization 0: Eliminate dead instructions
                 if (isDead(inst_iter)) {
 
@@ -268,20 +286,80 @@ void CommonSubexpressionElimination(LLVMModuleRef Module)
                     LLVMValueRef inst_next = LLVMGetNextInstruction(inst_iter);
                     while(inst_next != NULL) 
                     {
-                        if(LLVMGetInstructionOpcode(inst_next) == LLVMLoad && !LLVMGetVolatile(inst_next) && )
+                        if(LLVMGetInstructionOpcode(inst_next) == LLVMLoad && !LLVMGetVolatile(inst_next) && LLVMGetOperand(inst_next, 0) == LLVMGetOperand(inst_iter, 0) && LLVMTypeOf(inst_next) == LLVMTypeOf(inst_iter))
                         {
+                            LLVMStatisticsInc(CSELdElim);
+                            LLVMReplaceAllUsesWith(inst_next, inst_iter);
+                            
+                            LLVMValueRef rm = inst_next;
+                            // update iterator first, before erasing
+                            inst_next = LLVMGetNextInstruction(inst_next);
 
+                            LLVMInstructionEraseFromParent(rm);
+                            continue;
+                        }
+                        if(LLVMGetInstructionOpcode(inst_next) == LLVMStore)
+                        {
+                            break;
                         }
                         inst_next = LLVMGetNextInstruction(inst_next);
                     }
                 }
 
-                inst_iter = LLVMGetNextInstruction(inst_iter);
+                // Optimization 3: Eliminate Redundant Stores (and Loads)
+
+                if(LLVMGetInstructionOpcode(inst_iter) == LLVMStore) 
+                {
+                    LLVMValueRef inst_next = LLVMGetNextInstruction(inst_iter);
+                    while(inst_next != NULL) 
+                    {
+                        if(LLVMGetInstructionOpcode(inst_next) == LLVMLoad && !LLVMGetVolatile(inst_next) && LLVMGetOperand(inst_next, 0) == LLVMGetOperand(inst_iter, 1) && LLVMTypeOf(inst_next) == LLVMTypeOf(inst_iter))
+                        {
+                            LLVMStatisticsInc(CSEStore2Load);
+                            LLVMReplaceAllUsesWith(inst_next, inst_iter);
+                            
+                            LLVMValueRef rm = inst_next;
+                            // update iterator first, before erasing
+                            inst_next = LLVMGetNextInstruction(inst_next);
+
+                            LLVMInstructionEraseFromParent(rm);
+                            continue;
+                        }
+                        
+                        if(LLVMGetInstructionOpcode(inst_next) == LLVMStore && LLVMGetOperand(inst_next, 1) == LLVMGetOperand(inst_iter, 1) && !LLVMGetVolatile(inst_iter) && LLVMTypeOf(inst_next) == LLVMTypeOf(inst_iter))
+                        {
+                            LLVMStatisticsInc(CSEStElim);                            
+                            LLVMValueRef rm = inst_iter;
+                            // update iterator first, before erasing
+                            inst_iter = LLVMGetNextInstruction(inst_iter);
+
+                            LLVMInstructionEraseFromParent(rm);
+                            break;
+                        }
+
+                        if(!noSideEffect(inst_next))
+                        {
+                            inst_iter = LLVMGetNextInstruction(inst_iter);
+                            break;
+                        }
+                        inst_next = LLVMGetNextInstruction(inst_next);
+                    }
+                    if(inst_next == NULL) 
+                    {
+                        inst_iter = LLVMGetNextInstruction(inst_iter);
+                    }
+                }
+
+                if(LLVMGetInstructionOpcode(inst_iter) != LLVMStore) 
+                {
+                    inst_iter = LLVMGetNextInstruction(inst_iter);
+                }
             }
         }
     }
 
+    LLVMStatisticsInc(CSEElim);
     LLVMStatisticsInc(CSELdElim);
     LLVMStatisticsInc(CSEStore2Load);
-    LLVMStatisticsInc(CSEStElim);
+    LLVMStatisticsInc(CSEStElim); 
 }
