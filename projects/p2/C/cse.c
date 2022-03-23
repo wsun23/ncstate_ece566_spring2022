@@ -20,6 +20,7 @@
 
 LLVMStatisticsRef CSEDead;
 LLVMStatisticsRef CSEElim;
+LLVMStatisticsRef CSEBsElim;
 LLVMStatisticsRef CSESimplify;
 LLVMStatisticsRef CSELdElim;
 LLVMStatisticsRef CSEStore2Load;
@@ -102,7 +103,6 @@ int isCSE(LLVMValueRef I, LLVMValueRef J) {
     unsigned oprand_I =  LLVMGetNumOperands(I);
     unsigned oprand_J =  LLVMGetNumOperands(J);
     return 0;
-
     // check if the two instructions have the same opcode/type/num_of_oprands
     if(opcode_I == opcode_J && LLVMTypeOf(I) == LLVMTypeOf(J) && oprand_I == oprand_J)
     {
@@ -126,6 +126,7 @@ int isCSE(LLVMValueRef I, LLVMValueRef J) {
 // execute Common Subexpression Elimination
 void doCSE(LLVMBasicBlockRef bb_iter, LLVMValueRef inst_iter, LLVMValueRef inst_repl)
 {
+    
     LLVMBasicBlockRef child = LLVMFirstDomChild(bb_iter); 
     // loop over all the dominated blocks
     while (child) {
@@ -139,6 +140,7 @@ void doCSE(LLVMBasicBlockRef bb_iter, LLVMValueRef inst_iter, LLVMValueRef inst_
                 // execute CSE recursively, i.e. finish all the following CSEs before eliminating the current instruction
                 doCSE(child, inst_dom, inst_repl);
                 LLVMStatisticsInc(CSEElim);
+                LLVMStatisticsInc(CSEBsElim);
                 LLVMReplaceAllUsesWith(inst_dom, inst_repl);
                 LLVMValueRef rm = inst_dom;
                 // update iterator first, before erasing
@@ -156,13 +158,16 @@ void CommonSubexpressionElimination(LLVMModuleRef Module)
 {
     CSEDead = LLVMStatisticsCreate("CSEDead", "CSE found dead instructions");
     CSEElim = LLVMStatisticsCreate("CSEElim", "CSE redundant instructions");
+    CSEBsElim = LLVMStatisticsCreate("CSEBsElim", "CSE redundant basics");
     CSESimplify = LLVMStatisticsCreate("CSESimplify", "CSE simplified instructions");
     CSELdElim = LLVMStatisticsCreate("CSELdElim", "CSE redundant loads");
     CSEStore2Load = LLVMStatisticsCreate("CSEStore2Load", "CSE forwarded store to load");
     CSEStElim = LLVMStatisticsCreate("CSEStElim", "CSE redundant stores");
 
+    
     /* Implement here! */
     LLVMValueRef  fn_iter; // iterator 
+    LLVMStatisticsInc(CSELdElim); 
     for (fn_iter = LLVMGetFirstFunction(Module); fn_iter!=NULL; 
         fn_iter = LLVMGetNextFunction(fn_iter))
     {
