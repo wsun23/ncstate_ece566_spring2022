@@ -7,6 +7,7 @@
 #include <set>
 #include "llvm/IR/InstIterator.h"
 #include "worklist.h"
+#include "loop.h"
 
 using namespace llvm;
 
@@ -85,4 +86,16 @@ LLVMValueRef worklist_pop(worklist_t w)
     }
   else
     return NULL;
+}
+
+/* Get and remove top from list */
+LLVMBool worklist_include(worklist_t w, LLVMValueRef val)
+{
+  worklist_internal *list = (worklist_internal*)w;
+  worklist_internal::iterator I, E;
+  for(I=list->begin(), E=list->end(); I!=E; I++)
+  {
+    if(wrap(*I) == val) return (LLVMBool)1;
+  }
+  return (LLVMBool)0;
 }

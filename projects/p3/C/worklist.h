@@ -36,6 +36,8 @@ LLVMValueRef worklist_top(worklist_t w);
 /* Get and remove top from list */
 LLVMValueRef worklist_pop(worklist_t w);
 
+LLVMBool worklist_include(worklist_t w, LLVMValueRef val);
+
 #ifdef __cplusplus
 }
 #endif
