@@ -40,6 +40,7 @@ extern "C" {
   LLVMBool LLVMLoopContainsInst(LLVMLoopRef, LLVMValueRef);
   LLVMBool LLVMLoopContainsBasicBlock(LLVMLoopRef, LLVMBasicBlockRef);
 
+  // void worklist_insert_loop(worklist_t w, LLVMLoopRef LRef);
   LLVMBool worklist_include_BB(worklist_t w, LLVMBasicBlockRef BB, LLVMLoopInfoRef LIRef);
 #ifdef __cplusplus
 

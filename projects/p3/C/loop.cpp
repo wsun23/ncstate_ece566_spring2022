@@ -145,13 +145,23 @@ LLVMBool LLVMLoopContainsBasicBlock(LLVMLoopRef L, LLVMBasicBlockRef BB)
 
 typedef std::set<Value*> worklist_internal;
 
+
+// void worklist_insert_loop(worklist_t w, LLVMLoopRef LRef)
+// {
+//   worklist_internal *list = (worklist_internal*)w;
+//   list->insert(unwrap(LRef));
+// }
+
+
 LLVMBool worklist_include_BB(worklist_t w, LLVMBasicBlockRef BB, LLVMLoopInfoRef LIRef)
 {
   worklist_internal *list = (worklist_internal*)w;
   worklist_internal::iterator I, E;
   for(I=list->begin(), E=list->end(); I!=E; I++)
   {
-    if(LLVMLoopContainsBasicBlock(LLVMGetLoopRef(LIRef, LLVMValueAsBasicBlock(wrap(*I))) , BB) ) return (LLVMBool)1;
+    LLVMLoopRef temp = LLVMGetLoopRef(LIRef, LLVMValueAsBasicBlock(wrap(*I)));
+    if(temp != NULL && LLVMLoopContainsBasicBlock(temp , BB)) 
+    return (LLVMBool)1;
   }
   return (LLVMBool)0;
 }
